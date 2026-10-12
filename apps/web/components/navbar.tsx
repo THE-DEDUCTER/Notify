@@ -53,7 +53,7 @@ export function Navbar() {
             )}
             {user.role === 'SuperAdmin' && (
               <>
-                <Link href="/superadmin/analytics" className={`transition-colors hover:text-foreground ${pathname.startsWith('/superadmin') ? 'text-foreground font-semibold' : ''}`}>Institutional SLA & Analytics</Link>
+                <Link href="/superadmin/analytics" className={`transition-colors hover:text-foreground ${pathname.startsWith('/superadmin') ? 'text-foreground font-semibold' : ''}`}>Governance & SuperAdmin</Link>
                 <Link href="/admin/complaints" className={`transition-colors hover:text-foreground ${pathname === '/admin/complaints' ? 'text-foreground font-semibold' : ''}`}>Audit Console</Link>
                 <Link href="/feed" className={`transition-colors hover:text-foreground ${pathname === '/feed' ? 'text-foreground font-semibold' : ''}`}>Campus Feed</Link>
               </>

@@ -1,18 +1,23 @@
 "use client";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useComplaints } from "@/lib/context/ComplaintsContext";
 import { VoteController } from "@/components/domain/VoteController";
 import { SLACountdown } from "@/components/domain/SLACountdown";
 import { StatusStepper } from "@/components/domain/StatusStepper";
 import { Button } from "@/components/ui/button";
-import { MapPin, User as UserIcon, Calendar, Info, XCircle, CheckCircle } from "lucide-react";
+import { MapPin, User as UserIcon, Calendar, Info, XCircle, CheckCircle, Trash2, AlertTriangle, X } from "lucide-react";
 import { format } from "date-fns";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function ComplaintDetailClient({ id }: { id: string }) {
+  const router = useRouter();
   const complaintId = id;
   const { user } = useAuth();
-  const { complaints, departments, assistants, updateComplaintStatus, voteComplaint } = useComplaints();
+  const { complaints, departments, assistants, updateComplaintStatus, voteComplaint, deleteComplaint } = useComplaints();
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState("Issue resolved on its own");
   
   const complaint = complaints.find(c => c.id === complaintId);
 
@@ -155,8 +160,107 @@ export function ComplaintDetailClient({ id }: { id: string }) {
               This grievance was raised anonymously. The identity of the raiser is masked from the community, assistants, and administrators.
             </p>
           </div>
+
+          {isRaiser && (
+            <div className="bg-card border border-destructive/20 p-6 rounded-2xl shadow-sm space-y-4">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-4 h-4" />
+                <h3 className="text-xs font-extrabold uppercase tracking-widest">Manage Grievance</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                As the raiser of this grievance, you can withdraw or delete it at any time if the issue was resolved or submitted by mistake.
+              </p>
+              <Button
+                variant="destructive"
+                onClick={() => setShowWithdrawModal(true)}
+                className="w-full rounded-xl font-semibold shadow-xs flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Withdraw Grievance
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Modal: Confirm Grievance Withdrawal */}
+      <AnimatePresence>
+        {showWithdrawModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            >
+              <button
+                onClick={() => setShowWithdrawModal(false)}
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    Withdraw This Grievance?
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Ticket #{complaint.id.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-foreground/80 leading-relaxed mb-4">
+                Withdrawing this grievance will permanently remove it from the public campus feed, cancel technician dispatch, and halt SLA tracking.
+              </p>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                    Select Reason For Withdrawal
+                  </label>
+                  <select
+                    value={withdrawReason}
+                    onChange={(e) => setWithdrawReason(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-medium text-foreground focus:outline-none"
+                  >
+                    <option value="Issue resolved on its own">Issue resolved on its own</option>
+                    <option value="Submitted by mistake / duplicate">Submitted by mistake / duplicate</option>
+                    <option value="No longer urgent / cancelled">No longer urgent / cancelled</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="rounded-xl"
+                >
+                  Keep Issue Active
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteComplaint(complaint.id, withdrawReason);
+                    setShowWithdrawModal(false);
+                    router.push('/my-complaints');
+                  }}
+                  className="rounded-xl font-semibold shadow-xs"
+                >
+                  <Trash2 className="w-4 h-4 mr-1.5" />
+                  Confirm Withdrawal
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
